@@ -9,12 +9,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let barcode = read_barcode(line);
     println!("{:?}", barcode);
-    let start_code_end_index = read_start_guard(barcode);
+    let line_width = read_start_guard(barcode);
+    println!("{:?}", line_width);
 
     Ok(())
 }
 
-fn read_start_guard(barcode: Vec<u8>) -> usize {
+fn read_start_guard(barcode: Vec<u8>) -> i32 {
     let mut indexes: Vec<usize> = vec![];
     let mut lengths: Vec<usize> = vec![];
 
@@ -44,10 +45,17 @@ fn read_start_guard(barcode: Vec<u8>) -> usize {
         panic!("Error reading start guard, invalid barcode")
     }
 
-    println!("{:?}", indexes);
-    println!("{:?}", lengths);
+    calculate_average_size(lengths)
+}
 
-    indexes[2]
+fn calculate_average_size(lengths: Vec<usize>) -> i32 {
+    let mut sum = 0;
+
+    for i in 0..lengths.len() {
+        sum += lengths[i];
+    }
+
+    (sum as f32 / lengths.len() as f32).round() as i32
 }
 
 fn read_barcode(line: &[u8]) -> Vec<u8> {
