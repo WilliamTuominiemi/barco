@@ -9,10 +9,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let barcode = read_barcode(line);
     println!("{:?}", barcode);
-    let line_width = read_start_guard(&barcode);
+    let line_width = read_start_and_end_guard(&barcode);
     println!("{:?}", line_width);
     let binary = read_binary(&barcode, line_width);
     println!("{:?}", binary);
+    println!("{:?}", binary.len());
 
     Ok(())
 }
@@ -42,38 +43,72 @@ fn read_binary(barcode: &Vec<u8>, line_width: i32) -> Vec<u8> {
         }
     }
 
+    result.pop();
     result
 }
 
-fn read_start_guard(barcode: &Vec<u8>) -> i32 {
-    let mut indexes: Vec<usize> = vec![];
-    let mut lengths: Vec<usize> = vec![];
+fn read_start_and_end_guard(barcode: &Vec<u8>) -> i32 {
+    let mut start_indexes: Vec<usize> = vec![];
+    let mut start_lengths: Vec<usize> = vec![];
+    let mut end_indexes: Vec<usize> = vec![];
+    let mut end_lengths: Vec<usize> = vec![];
 
-    for i in 0..barcode.len() {
+    let bc_length = barcode.len();
+
+    for i in 0..bc_length {
         let byte = barcode[i];
 
-        let entries = indexes.len();
+        let entries = start_indexes.len();
         let last = if entries == 0 {
             None
         } else {
-            Some(indexes[entries - 1])
+            Some(start_indexes[entries - 1])
         };
 
         if (entries == 0 && byte == 0) || (entries == 1 && byte == 1) || (entries == 2 && byte == 0)
         {
-            indexes.push(i - 1);
+            start_indexes.push(i - 1);
 
             match last {
-                Some(index) => lengths.push(i - index - 1),
-                _ => lengths.push(i),
+                Some(index) => start_lengths.push(i - index - 1),
+                _ => start_lengths.push(i),
             }
         }
     }
 
-    let ratio = lengths[0] as f64 / lengths[2] as f64;
-    if (ratio < 0.6) || (ratio > 1.4) {
+    for i in 0..bc_length {
+        let byte = barcode[bc_length - i - 1];
+
+        let entries = end_indexes.len();
+        let last = if entries == 0 {
+            None
+        } else {
+            Some(end_indexes[entries - 1])
+        };
+
+        if (entries == 0 && byte == 0) || (entries == 1 && byte == 1) || (entries == 2 && byte == 0)
+        {
+            end_indexes.push(i - 1);
+
+            match last {
+                Some(index) => end_lengths.push(i - index - 1),
+                _ => end_lengths.push(i),
+            }
+        }
+    }
+
+    let start_ratio = start_lengths[0] as f64 / start_lengths[2] as f64;
+    if (start_ratio < 0.6) || (start_ratio > 1.4) {
         panic!("Error reading start guard, invalid barcode")
     }
+
+    let end_ratio = end_lengths[0] as f64 / end_lengths[2] as f64;
+    if (end_ratio < 0.6) || (end_ratio > 1.4) {
+        panic!("Error reading end guard, invalid barcode")
+    }
+
+    let mut lengths = start_lengths;
+    lengths.extend(end_lengths);
 
     calculate_average_size(lengths)
 }
@@ -85,7 +120,7 @@ fn calculate_average_size(lengths: Vec<usize>) -> i32 {
         sum += lengths[i];
     }
 
-    (sum as f32 / lengths.len() as f32).round() as i32
+    (sum as f32 / lengths.len() as f32).round() as i32 - 1
 }
 
 fn read_barcode(line: &[u8]) -> Vec<u8> {
