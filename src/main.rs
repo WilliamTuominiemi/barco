@@ -9,13 +9,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let barcode = read_barcode(line);
     println!("{:?}", barcode);
-    let line_width = read_start_guard(barcode);
+    let line_width = read_start_guard(&barcode);
     println!("{:?}", line_width);
+    let binary = read_binary(&barcode, line_width);
+    println!("{:?}", binary);
 
     Ok(())
 }
 
-fn read_start_guard(barcode: Vec<u8>) -> i32 {
+fn read_binary(barcode: &Vec<u8>, line_width: i32) -> Vec<u8> {
+    let mut result: Vec<u8> = vec![];
+    let mut current: Vec<u8> = vec![];
+
+    current.push(barcode[0]);
+
+    for i in 1..barcode.len() {
+        let byte = barcode[i];
+
+        if barcode[i - 1] != byte {
+            let previous_bar_length = if current.len() > line_width as usize {
+                current.len()
+            } else {
+                line_width as usize
+            };
+            let bar_amount = ((previous_bar_length as f64) / (line_width as f64)).round() as u32;
+            for _j in 0..bar_amount {
+                result.push(current[0]);
+            }
+            current = vec![];
+        } else {
+            current.push(byte);
+        }
+    }
+
+    result
+}
+
+fn read_start_guard(barcode: &Vec<u8>) -> i32 {
     let mut indexes: Vec<usize> = vec![];
     let mut lengths: Vec<usize> = vec![];
 
