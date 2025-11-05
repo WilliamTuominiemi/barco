@@ -8,12 +8,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let line = cropped.as_bytes();
 
     let barcode = read_barcode(line);
-    println!("{:?}", barcode);
     let line_width = read_start_and_end_guard(&barcode);
-    println!("{:?}", line_width);
     let binary = read_binary(&barcode, line_width);
-    println!("{:?}", binary);
-    println!("{:?}", binary.len());
+    
+    let left = left_part(&binary);
 
     Ok(())
 }
@@ -111,6 +109,25 @@ fn read_start_and_end_guard(barcode: &Vec<u8>) -> i32 {
     lengths.extend(end_lengths);
 
     calculate_average_size(lengths)
+}
+
+fn left_part(binary: &Vec<u8>) -> Vec<Vec<u8>>{
+
+    let mut numbers: Vec<Vec<u8>> = vec![];
+    let mut current: Vec<u8> = vec![]; // 7 bits long
+
+    let size = binary.len();
+
+    for i in 3..size/2 {
+        current.push(binary[i]);
+
+        if current.len() >= 7 {
+            numbers.push(current);
+            current = vec![];
+        }
+    } 
+
+    numbers
 }
 
 fn calculate_average_size(lengths: Vec<usize>) -> i32 {
