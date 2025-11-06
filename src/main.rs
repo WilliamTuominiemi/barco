@@ -10,8 +10,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let barcode = read_barcode(line);
     let line_width = read_start_and_end_guard(&barcode);
     let binary = read_binary(&barcode, line_width);
-    
+
     let left = left_part(&binary);
+
+    let mut digits: Vec<u8> = vec![];
+    for code in left {
+        let digit = get_digit_from_L_code(code);
+        match digit {
+            Some(d) => digits.push(d),
+            _ => println!("Error reading digit"),
+        }
+    }
+
+    println!("{:?}", digits);
 
     Ok(())
 }
@@ -111,21 +122,22 @@ fn read_start_and_end_guard(barcode: &Vec<u8>) -> i32 {
     calculate_average_size(lengths)
 }
 
-fn left_part(binary: &Vec<u8>) -> Vec<Vec<u8>>{
-
+fn left_part(binary: &Vec<u8>) -> Vec<Vec<u8>> {
     let mut numbers: Vec<Vec<u8>> = vec![];
     let mut current: Vec<u8> = vec![]; // 7 bits long
 
     let size = binary.len();
 
-    for i in 3..size/2 {
+    for i in 3..size / 2 {
         current.push(binary[i]);
 
         if current.len() >= 7 {
             numbers.push(current);
             current = vec![];
         }
-    } 
+    }
+
+    println!("{:?}", numbers);
 
     numbers
 }
@@ -169,4 +181,31 @@ fn read_barcode(line: &[u8]) -> Vec<u8> {
     };
 
     barcode
+}
+
+fn get_digit_from_L_code(code: Vec<u8>) -> Option<u8> {
+    let s: String = code
+        .iter()
+        .map(|&b| match b {
+            0 => '0',
+            1 => '1',
+            _ => panic!("Invalid binary digit: {}", b),
+        })
+        .collect();
+
+    let digit: Option<u8> = match s.as_str() {
+        "0001101" => Some(0),
+        "0011001" => Some(1),
+        "0010011" => Some(2),
+        "0111101" => Some(3),
+        "0100011" => Some(4),
+        "0110001" => Some(5),
+        "0101111" => Some(6),
+        "0111011" => Some(7),
+        "0110111" => Some(8),
+        "0001011" => Some(9),
+        _ => None,
+    };
+
+    return digit;
 }
