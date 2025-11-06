@@ -17,7 +17,7 @@ fn read_barcode(line: &[u8]) -> Vec<u8> {
     for i in 0..bytes.len() {
         let byte = bytes[i];
 
-        if byte / 2 < 100 {
+        if byte < 200 {
             bytes[i] = 1;
         } else {
             bytes[i] = 0;
@@ -35,9 +35,37 @@ fn read_barcode(line: &[u8]) -> Vec<u8> {
     }
 
     let barcode = match (start, end) {
-        (Some(s), Some(e)) => bytes[s..e].to_vec(),
+        (Some(s), Some(e)) => bytes[s..e + 1].to_vec(),
         _ => panic!("barcode not found"),
     };
 
     barcode
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_read_barcode() {
+        let line: Vec<u8> = vec![
+            255, 255, 255, 255, 255, // Quiet zone (white)
+            50, 250, 50, // Start guard: 101
+            // Digit 7 in L-code: 0111011
+            240, // 0
+            45, 22, 76,  // 111
+            233, // 0
+            12, 12, // 11
+            255, 255, 255, 255, 255, // Quiet zone (white)
+        ];
+
+        let expected_barcode: Vec<u8> = vec![
+            1, 0, 1, // Start guard: 1 0 1
+            0, 1, 1, 1, 0, 1, 1, // Digit 7: 0 1 1 1 0 1 1
+        ];
+
+        let result = read_barcode(&line);
+
+        assert_eq!(result, expected_barcode);
+    }
 }
