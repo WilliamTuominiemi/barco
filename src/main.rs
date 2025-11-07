@@ -17,7 +17,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    let index_at_middle = 3 + 6 * 7 + 1;
+    let mut binary_at_middle = binary.clone();
+    binary_at_middle.drain(0..index_at_middle);
+    validate_center_marker(&binary_at_middle);
+
     println!("{:?}", digits);
+    println!("{:?}", binary_at_middle);
 
     Ok(())
 }
@@ -122,7 +128,7 @@ fn left_part(binary: &Vec<u8>) -> Vec<Vec<u8>> {
     let mut numbers: Vec<Vec<u8>> = vec![];
     let mut current: Vec<u8> = vec![]; // 7 bits long
 
-    let size = byte_vec.len();
+    let mut size = byte_vec.len();
 
     for i in 3..size / 2 {
         let byte = byte_vec[i];
@@ -133,6 +139,7 @@ fn left_part(binary: &Vec<u8>) -> Vec<Vec<u8>> {
                 current.pop();
                 current.insert(5, 0);
                 byte_vec.insert(0, 0);
+                size += 1;
             }
 
             numbers.push(current);
@@ -178,4 +185,14 @@ fn get_digit_from_l_code(code: Vec<u8>) -> Option<u8> {
     };
 
     return digit;
+}
+
+fn validate_center_marker(binary: &Vec<u8>) {
+    let expected_center = &binary[0..5];
+    if expected_center != vec![0, 1, 0, 1, 0] {
+        panic!(
+            "Error reading center marker {:?} was not 01010",
+            expected_center
+        )
+    }
 }
