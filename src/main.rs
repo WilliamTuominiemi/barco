@@ -118,21 +118,27 @@ fn read_start_and_end_guard(barcode: &Vec<u8>) -> i32 {
 }
 
 fn left_part(binary: &Vec<u8>) -> Vec<Vec<u8>> {
+    let mut byte_vec = binary.clone();
     let mut numbers: Vec<Vec<u8>> = vec![];
     let mut current: Vec<u8> = vec![]; // 7 bits long
 
-    let size = binary.len();
+    let size = byte_vec.len();
 
     for i in 3..size / 2 {
-        current.push(binary[i]);
+        let byte = byte_vec[i];
+        current.push(byte);
 
         if current.len() >= 7 {
+            if byte == 0 {
+                current.pop();
+                current.insert(5, 0);
+                byte_vec.insert(0, 0);
+            }
+
             numbers.push(current);
             current = vec![];
         }
     }
-
-    println!("{:?}", numbers);
 
     numbers
 }
