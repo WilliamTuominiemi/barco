@@ -8,22 +8,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let left = left_part(&binary);
 
-    let mut digits: Vec<u8> = vec![];
+    let mut left_digits: Vec<u8> = vec![];
     for code in left {
         let digit = get_digit_from_l_code(code);
         match digit {
-            Some(d) => digits.push(d),
+            Some(d) => left_digits.push(d),
             _ => println!("Error reading digit"),
         }
     }
 
-    let index_at_middle = 3 + 6 * 7 + 1;
+    let index_at_middle = 3 + 6 * 7 - 1;
     let mut binary_at_middle = binary.clone();
     binary_at_middle.drain(0..index_at_middle);
     validate_center_marker(&binary_at_middle);
 
-    println!("{:?}", digits);
-    println!("{:?}", binary_at_middle);
+    let right = right_part(&binary_at_middle);
+
+    let mut right_digits: Vec<u8> = vec![];
+    for code in right {
+        let digit = get_digit_from_r_code(code);
+        match digit {
+            Some(d) => right_digits.push(d),
+            _ => println!("Error reading digit"),
+        }
+    }
+
+    println!("{:?}", left_digits);
+    println!("{:?}", right_digits);
 
     Ok(())
 }
@@ -150,6 +161,26 @@ fn left_part(binary: &Vec<u8>) -> Vec<Vec<u8>> {
     numbers
 }
 
+fn right_part(binary: &Vec<u8>) -> Vec<Vec<u8>> {
+    let mut byte_vec = binary.clone();
+    let mut numbers: Vec<Vec<u8>> = vec![];
+    let mut current: Vec<u8> = vec![]; // 7 bits long
+
+    let mut size = byte_vec.len();
+
+    for i in 5..size {
+        let byte = byte_vec[i];
+        current.push(byte);
+
+        if current.len() >= 7 {
+            numbers.push(current);
+            current = vec![];
+        }
+    }
+
+    numbers
+}
+
 fn calculate_average_size(lengths: Vec<usize>) -> i32 {
     let mut sum = 0;
 
@@ -181,6 +212,33 @@ fn get_digit_from_l_code(code: Vec<u8>) -> Option<u8> {
         "0111011" => Some(7),
         "0110111" => Some(8),
         "0001011" => Some(9),
+        _ => None,
+    };
+
+    return digit;
+}
+
+fn get_digit_from_r_code(code: Vec<u8>) -> Option<u8> {
+    let s: String = code
+        .iter()
+        .map(|&b| match b {
+            0 => '0',
+            1 => '1',
+            _ => panic!("Invalid binary digit: {}", b),
+        })
+        .collect();
+
+    let digit: Option<u8> = match s.as_str() {
+        "1110010" => Some(0),
+        "1100110" => Some(1),
+        "1101100" => Some(2),
+        "1000010" => Some(3),
+        "1011100" => Some(4),
+        "1001110" => Some(5),
+        "1010000" => Some(6),
+        "1000100" => Some(7),
+        "1001000" => Some(8),
+        "1110100" => Some(9),
         _ => None,
     };
 
