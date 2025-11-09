@@ -56,12 +56,14 @@ mod tests {
             45, 22, 76,  // 111
             233, // 0
             12, 12, // 11
+            53, 248, 50, // End guard: 101
             255, 255, 255, 255, 255, // Quiet zone (white)
         ];
 
         let expected_barcode: Vec<u8> = vec![
             1, 0, 1, // Start guard: 1 0 1
             0, 1, 1, 1, 0, 1, 1, // Digit 7: 0 1 1 1 0 1 1
+            1, 0, 1, // End guard: 1 0 1
         ];
 
         let result = read_barcode(&line);

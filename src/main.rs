@@ -6,6 +6,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let line_width = read_start_and_end_guard(&barcode);
     let binary = read_binary(&barcode, line_width);
 
+    println!("{:?}", binary);
+
     let left = left_part(&binary);
 
     let mut left_digits: Vec<u8> = vec![];
@@ -64,7 +66,8 @@ fn read_binary(barcode: &Vec<u8>, line_width: i32) -> Vec<u8> {
         }
     }
 
-    result.pop();
+    result.push(current[0]);
+
     result
 }
 
