@@ -31,8 +31,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    println!("{:?}", left_digits);
-    println!("{:?}", right_digits);
+    let decoded = [left_digits, right_digits].concat();
+    println!("{:?}", decoded);
 
     Ok(())
 }
