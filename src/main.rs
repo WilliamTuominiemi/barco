@@ -6,10 +6,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let line_width = read_start_and_end_guard(&barcode);
     let binary = read_binary(&barcode, line_width);
 
-    println!("{:?}", binary);
-
     let left = left_part(&binary);
-
     let mut left_digits: Vec<u8> = vec![];
     for code in left {
         let digit = get_digit_from_l_code(code);
@@ -25,7 +22,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     validate_center_marker(&binary_at_middle);
 
     let right = right_part(&binary_at_middle);
-
     let mut right_digits: Vec<u8> = vec![];
     for code in right {
         let digit = get_digit_from_r_code(code);
@@ -176,6 +172,13 @@ fn right_part(binary: &Vec<u8>) -> Vec<Vec<u8>> {
         current.push(byte);
 
         if current.len() >= 7 {
+            if byte == 1 {
+                current.pop();
+                current.insert(1, 0);
+                byte_vec.insert(0, 0);
+                size += 1;
+            }
+
             numbers.push(current);
             current = vec![];
         }
