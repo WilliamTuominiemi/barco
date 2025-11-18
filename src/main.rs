@@ -1,17 +1,38 @@
-use image::ImageReader;
+mod reader;
+use reader::read_image;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut image = ImageReader::open("barcode.png")?.decode()?;
-    let image_height = image.height();
-    let image_width = image.width();
-    let cropped = image.crop(0, image_height / 2, image_width, 1);
-    let line = cropped.as_bytes();
-
-    let barcode = read_barcode(line);
+    let barcode = read_image("barcode.png")?;
     let line_width = read_start_and_end_guard(&barcode);
     let binary = read_binary(&barcode, line_width);
-    
+
     let left = left_part(&binary);
+    let mut left_digits: Vec<u8> = vec![];
+    for code in left {
+        let digit = get_digit_from_l_code(code);
+        match digit {
+            Some(d) => left_digits.push(d),
+            _ => println!("Error reading digit"),
+        }
+    }
+
+    let index_at_middle = 3 + 6 * 7 - 1;
+    let mut binary_at_middle = binary.clone();
+    binary_at_middle.drain(0..index_at_middle);
+    validate_center_marker(&binary_at_middle);
+
+    let right = right_part(&binary_at_middle);
+    let mut right_digits: Vec<u8> = vec![];
+    for code in right {
+        let digit = get_digit_from_r_code(code);
+        match digit {
+            Some(d) => right_digits.push(d),
+            _ => println!("Error reading digit"),
+        }
+    }
+
+    let decoded = [left_digits, right_digits].concat();
+    println!("{:?}", decoded);
 
     Ok(())
 }
@@ -41,7 +62,8 @@ fn read_binary(barcode: &Vec<u8>, line_width: i32) -> Vec<u8> {
         }
     }
 
-    result.pop();
+    result.push(current[0]);
+
     result
 }
 
@@ -111,21 +133,56 @@ fn read_start_and_end_guard(barcode: &Vec<u8>) -> i32 {
     calculate_average_size(lengths)
 }
 
-fn left_part(binary: &Vec<u8>) -> Vec<Vec<u8>>{
-
+fn left_part(binary: &Vec<u8>) -> Vec<Vec<u8>> {
+    let mut byte_vec = binary.clone();
     let mut numbers: Vec<Vec<u8>> = vec![];
     let mut current: Vec<u8> = vec![]; // 7 bits long
 
-    let size = binary.len();
+    let mut size = byte_vec.len();
 
-    for i in 3..size/2 {
-        current.push(binary[i]);
+    for i in 3..size / 2 {
+        let byte = byte_vec[i];
+        current.push(byte);
 
         if current.len() >= 7 {
+            if byte == 0 {
+                current.pop();
+                current.insert(5, 0);
+                byte_vec.insert(0, 0);
+                size += 1;
+            }
+
             numbers.push(current);
             current = vec![];
         }
-    } 
+    }
+
+    numbers
+}
+
+fn right_part(binary: &Vec<u8>) -> Vec<Vec<u8>> {
+    let mut byte_vec = binary.clone();
+    let mut numbers: Vec<Vec<u8>> = vec![];
+    let mut current: Vec<u8> = vec![]; // 7 bits long
+
+    let mut size = byte_vec.len();
+
+    for i in 5..size {
+        let byte = byte_vec[i];
+        current.push(byte);
+
+        if current.len() >= 7 {
+            if byte == 1 {
+                current.pop();
+                current.insert(1, 0);
+                byte_vec.insert(0, 0);
+                size += 1;
+            }
+
+            numbers.push(current);
+            current = vec![];
+        }
+    }
 
     numbers
 }
@@ -140,33 +197,66 @@ fn calculate_average_size(lengths: Vec<usize>) -> i32 {
     (sum as f32 / lengths.len() as f32).round() as i32 - 1
 }
 
-fn read_barcode(line: &[u8]) -> Vec<u8> {
-    let mut bytes = line.to_vec();
+fn get_digit_from_l_code(code: Vec<u8>) -> Option<u8> {
+    let s: String = code
+        .iter()
+        .map(|&b| match b {
+            0 => '0',
+            1 => '1',
+            _ => panic!("Invalid binary digit: {}", b),
+        })
+        .collect();
 
-    for i in 0..bytes.len() {
-        let byte = bytes[i];
-
-        if byte / 2 < 100 {
-            bytes[i] = 1;
-        } else {
-            bytes[i] = 0;
-        }
-    }
-
-    let mut start: Option<usize> = None;
-    let mut end: Option<usize> = None;
-    for i in 0..bytes.len() {
-        if bytes[i] == 1 && start.is_none() {
-            start = Some(i);
-        } else if bytes[i] == 1 && start.is_some() {
-            end = Some(i);
-        }
-    }
-
-    let barcode = match (start, end) {
-        (Some(s), Some(e)) => bytes[s..e].to_vec(),
-        _ => panic!("barcode not found"),
+    let digit: Option<u8> = match s.as_str() {
+        "0001101" => Some(0),
+        "0011001" => Some(1),
+        "0010011" => Some(2),
+        "0111101" => Some(3),
+        "0100011" => Some(4),
+        "0110001" => Some(5),
+        "0101111" => Some(6),
+        "0111011" => Some(7),
+        "0110111" => Some(8),
+        "0001011" => Some(9),
+        _ => None,
     };
 
-    barcode
+    return digit;
+}
+
+fn get_digit_from_r_code(code: Vec<u8>) -> Option<u8> {
+    let s: String = code
+        .iter()
+        .map(|&b| match b {
+            0 => '0',
+            1 => '1',
+            _ => panic!("Invalid binary digit: {}", b),
+        })
+        .collect();
+
+    let digit: Option<u8> = match s.as_str() {
+        "1110010" => Some(0),
+        "1100110" => Some(1),
+        "1101100" => Some(2),
+        "1000010" => Some(3),
+        "1011100" => Some(4),
+        "1001110" => Some(5),
+        "1010000" => Some(6),
+        "1000100" => Some(7),
+        "1001000" => Some(8),
+        "1110100" => Some(9),
+        _ => None,
+    };
+
+    return digit;
+}
+
+fn validate_center_marker(binary: &Vec<u8>) {
+    let expected_center = &binary[0..5];
+    if expected_center != vec![0, 1, 0, 1, 0] {
+        panic!(
+            "Error reading center marker {:?} was not 01010",
+            expected_center
+        )
+    }
 }
