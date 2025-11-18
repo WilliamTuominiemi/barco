@@ -1,4 +1,6 @@
 mod reader;
+mod checksum;
+
 use reader::read_image;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
